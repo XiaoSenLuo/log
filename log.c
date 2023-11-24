@@ -259,6 +259,7 @@ void log_hex_dump(log_t *log, log_level level, void *base, unsigned int length)
     unsigned char *address;
     unsigned int len;
     unsigned int printLen = 0;
+    struct llog_def llog = {.log = log, .level = level};
 
     if (length == 0 || (log != LOG_ALL_OBJ && log->level < level))
     {
@@ -267,10 +268,16 @@ void log_hex_dump(log_t *log, log_level level, void *base, unsigned int length)
 #if LOG_USING_LOCK == 1
     log_lock(log);
 #endif /* LOG_USING_LOCK == 1 */
+#if(0)
     len = snprintf_(logBuffer, LOG_BUFFER_SIZE - 1, "memory of 0x%08x, size: %d:\r\n%s",
                    (unsigned int)base, length, memPrintHead);
     log_write_buffer(log, level, logBuffer, len);
-
+#else
+    len = fctprintf(log_write_out_fn, &llog,
+                    "memory of 0x%08x, size: %d:\r\n%s",
+                    (unsigned int)base, length, memPrintHead);
+    (void)len;
+#endif
     len = length;
 
     address = (unsigned char *)((unsigned int)base & (~0x0000000F));
@@ -279,47 +286,82 @@ void log_hex_dump(log_t *log, log_level level, void *base, unsigned int length)
 
     while (length)
     {
+#if(0)
         printLen += sprintf_(logBuffer + printLen, memPrintAddr, (unsigned int)address);
+#else
+        printLen += fctprintf(log_write_out_fn, &llog,
+                              memPrintAddr, (unsigned int)address);
+#endif
         for (int i = 0; i < 16; i++)
         {
             if ((unsigned int)(address + i) < (unsigned int)base
                 || (unsigned int)(address + i) >= (unsigned int)base + len)
             {
+#if(0)
                 logBuffer[printLen ++] = ' ';
                 logBuffer[printLen ++] = ' ';
                 logBuffer[printLen ++] = ' ';
+#else
+                printLen += fctprintf(log_write_out_fn, &llog, "   ");
+#endif
             }
             else
             {
+#if(0)
                 printLen += sprintf_(logBuffer + printLen, "%02x ", *(address + i));
+#else
+                printLen += fctprintf(log_write_out_fn, &llog,
+                                      "%02x ", *(address + i));
+#endif
             }
         }
+#if(0)
         logBuffer[printLen ++] = '|';
         logBuffer[printLen ++] = ' ';
+#else
+        printLen += fctprintf(log_write_out_fn, &llog, "| ");
+#endif
         for (int i = 0; i < 16; i++)
         {
             if ((unsigned int)(address + i) < (unsigned int)base
                 || (unsigned int)(address + i) >= (unsigned int)base + len)
             {
+#if(0)
                 logBuffer[printLen ++] = ' ';
+#else
+                printLen += fctprintf(log_write_out_fn, &llog, " ");
+#endif
             }
             else
             {
                 if (*(address + i) >= 32 && *(address + i) <= 126)
                 {
+#if(0)
                     printLen += sprintf_(logBuffer + printLen, "%c", *(address + i));
+#else
+                    printLen += fctprintf(log_write_out_fn, &llog, "%c", *(address + i));
+#endif
                 }
                 else
                 {
+#if(0)
                     logBuffer[printLen ++] = '.';
+#else
+                    printLen += fctprintf(log_write_out_fn, &llog, ".");
+#endif
                 }
             }
         }
+#if(0)
         logBuffer[printLen ++] = ' ';
         logBuffer[printLen ++] = '|';
         logBuffer[printLen ++] = '\r';
         logBuffer[printLen ++] = '\n';
         log_write_buffer(log, level, logBuffer, printLen);
+#else
+        printLen += fctprintf(log_write_out_fn, &llog, " |\r\n");
+        (void)printLen;
+#endif
         address += 16;
         length -= 16;
         printLen = 0;
